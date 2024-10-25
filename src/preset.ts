@@ -247,7 +247,7 @@ export function generateTsupOptions(
             },
             esbuildPlugins: !type.jsx
                 ? [
-                      solidPlugin({ solid: { generate: type.server ? 'ssr' : 'dom' } }),
+                      solidPlugin({ solid: { hydratable: true, generate: type.server ? 'ssr' : 'dom' } }),
                       ...options.esbuild_plugins,
                   ]
                 : options.esbuild_plugins,
