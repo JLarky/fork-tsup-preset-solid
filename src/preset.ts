@@ -11,6 +11,11 @@ export interface EntryOptions {
     dev_entry?: boolean | string
     /** Setting `true` will generate a server-only entry (default: `false`) */
     server_entry?: boolean | string
+    /**
+     * Setting `true` will set `hydratable` option of babel plugin (default: `false`)
+     * @see https://www.solidjs.com/guides/server
+     */
+    hydratable?: boolean | undefined
 }
 
 export type ModifyEsbuildOptions = (
@@ -67,6 +72,7 @@ export interface EntryType {
     dev: boolean
     server: boolean
     jsx: boolean
+    hydratable: boolean
 }
 
 export interface BuildItem {
@@ -127,6 +133,7 @@ export function parsePresetOptions(
                 dev: !!options.dev_entry,
                 server: !!options.server_entry,
                 jsx: options.entry.endsWith('.jsx') || options.entry.endsWith('.tsx'),
+                hydratable: !!options.hydratable,
             },
         }
     })
@@ -179,7 +186,11 @@ export function generateTsupOptions(
                     if (item) {
                         item.entries.add(entry)
                     } else {
-                        items.push({ type: { dev, server, jsx }, entries: new Set([entry]) })
+                        const hydratable = entry.options.hydratable ?? false
+                        items.push({
+                            type: { dev, server, jsx, hydratable },
+                            entries: new Set([entry]),
+                        })
                     }
                 }
             }
@@ -247,7 +258,12 @@ export function generateTsupOptions(
             },
             esbuildPlugins: !type.jsx
                 ? [
-                      solidPlugin({ solid: { generate: type.server ? 'ssr' : 'dom' } }),
+                      solidPlugin({
+                          solid: {
+                              hydratable: type.hydratable,
+                              generate: type.server ? 'ssr' : 'dom',
+                          },
+                      }),
                       ...options.esbuild_plugins,
                   ]
                 : options.esbuild_plugins,
