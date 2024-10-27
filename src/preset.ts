@@ -1,7 +1,7 @@
 import path from 'path'
 import * as tsup from 'tsup'
 import * as esbuild from 'esbuild'
-import { solidPlugin } from 'esbuild-plugin-solid'
+import { type Options, solidPlugin } from 'esbuild-plugin-solid'
 
 export interface EntryOptions {
     name?: string | undefined
@@ -11,6 +11,14 @@ export interface EntryOptions {
     dev_entry?: boolean | string
     /** Setting `true` will generate a server-only entry (default: `false`) */
     server_entry?: boolean | string
+    /**
+     * Pass any additional [babel-plugin-jsx-dom-expressions](https://github.com/ryansolid/dom-expressions/tree/main/packages/babel-plugin-jsx-dom-expressions#plugin-options).
+     * They will be merged with the defaults sets by [babel-preset-solid](https://github.com/solidjs/solid/blob/main/packages/babel-preset-solid/index.js#L8-L25).
+     * Option `generate` will be set to `ssr` if `server_entry` is set to `true` and `dom` otherwise.
+     *
+     * @default {}
+     */
+    solid_options?: Options['solid'] | undefined
 }
 
 export type ModifyEsbuildOptions = (
@@ -67,6 +75,7 @@ export interface EntryType {
     dev: boolean
     server: boolean
     jsx: boolean
+    solid_options: Options['solid']
 }
 
 export interface BuildItem {
@@ -127,6 +136,7 @@ export function parsePresetOptions(
                 dev: !!options.dev_entry,
                 server: !!options.server_entry,
                 jsx: options.entry.endsWith('.jsx') || options.entry.endsWith('.tsx'),
+                solid_options: options.solid_options,
             },
         }
     })
@@ -179,7 +189,11 @@ export function generateTsupOptions(
                     if (item) {
                         item.entries.add(entry)
                     } else {
-                        items.push({ type: { dev, server, jsx }, entries: new Set([entry]) })
+                        const solid_options = entry.options.solid_options ?? {}
+                        items.push({
+                            type: { dev, server, jsx, solid_options },
+                            entries: new Set([entry]),
+                        })
                     }
                 }
             }
@@ -247,7 +261,12 @@ export function generateTsupOptions(
             },
             esbuildPlugins: !type.jsx
                 ? [
-                      solidPlugin({ solid: { generate: type.server ? 'ssr' : 'dom' } }),
+                      solidPlugin({
+                          solid: {
+                              generate: type.server ? 'ssr' : 'dom',
+                              ...type.solid_options,
+                          },
+                      }),
                       ...options.esbuild_plugins,
                   ]
                 : options.esbuild_plugins,
