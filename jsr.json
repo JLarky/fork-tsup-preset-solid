@@ -1,0 +1,5 @@
+{
+    "name": "@jlarky/fork-tsup-preset-solid",
+    "version": "0.0.1",
+    "exports": "./src/index.ts"
+}
